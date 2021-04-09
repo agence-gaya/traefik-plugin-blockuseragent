@@ -4,6 +4,7 @@ package traefik_plugin_blockuseragent
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 )
@@ -15,7 +16,7 @@ type Config struct {
 
 // CreateConfig creates and initializes the plugin configuration.
 func CreateConfig() *Config {
-	return &Config{Regex: make([]string, 5)}
+	return &Config{Regex: make([]string, 0)}
 }
 
 type blockUserAgent struct {
@@ -49,7 +50,9 @@ func (b *blockUserAgent) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if userAgent != "" {
 		for _, re := range b.regexps {
 			if re.MatchString(userAgent) {
+				log.Printf("Block User-Agent: '%s'", userAgent)
 				rw.WriteHeader(http.StatusForbidden)
+
 				return
 			}
 		}
