@@ -1,5 +1,5 @@
-// Package plugin_blockuseragent a plugin to block User-Agent.
-package plugin_blockuseragent
+// Package traefik_plugin_blockuseragent a plugin to block User-Agent.
+package traefik_plugin_blockuseragent
 
 import (
 	"context"

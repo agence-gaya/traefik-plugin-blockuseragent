@@ -1,4 +1,4 @@
-package plugin_blockuseragent
+package traefik_plugin_blockuseragent
 
 import (
 	"context"
