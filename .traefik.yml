@@ -1,0 +1,9 @@
+displayName: Block User-Agent
+summary: Blocks HTTP requests with a User-Agent matching the configured regex.
+type: middleware
+import: github.com/traefik/plugin-blockuseragent
+compatibility: TODO
+testData:
+  Regex:
+    - "\buseragent1\b|\bbadbod2\b|\buseragent3\b|\buseragent4\b"
+    - "\buseragent5\b|\bbadbod6\b|\buseragent7\b|\buseragent8\b"
