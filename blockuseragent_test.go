@@ -87,6 +87,20 @@ func TestServeHTTP(t *testing.T) {
 			expNextCall:   false,
 			expStatusCode: http.StatusForbidden,
 		},
+		{
+			desc:          "should return forbidden status",
+			regexps:       []string{"^$"},
+			reqUserAgent:  "",
+			expNextCall:   false,
+			expStatusCode: http.StatusForbidden,
+		},
+		{
+			desc:          "should return ok status",
+			regexps:       []string{"^$"},
+			reqUserAgent:  "agentok",
+			expNextCall:   true,
+			expStatusCode: http.StatusOK,
+		},
 	}
 
 	for _, test := range tests {
