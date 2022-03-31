@@ -46,14 +46,16 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 }
 
 func (b *blockUserAgent) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	userAgent := req.UserAgent()
+	if req != nil {
+		userAgent := req.UserAgent()
 
-	for _, re := range b.regexps {
-		if re.MatchString(userAgent) {
-			log.Printf("Block User-Agent: '%s'", userAgent)
-			rw.WriteHeader(http.StatusForbidden)
+		for _, re := range b.regexps {
+			if re.MatchString(userAgent) {
+				log.Printf("Block User-Agent: '%s'", userAgent)
+				rw.WriteHeader(http.StatusForbidden)
 
-			return
+				return
+			}
 		}
 	}
 
