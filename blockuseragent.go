@@ -60,7 +60,7 @@ func (b *BlockUserAgent) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 		for i, re := range b.regexps {
 			if re.MatchString(userAgent) {
-				message := map[string]interface{}{ "regex": i, "user-agent": userAgent, "ip": req.RemoteAddr, "uri": req.RequestURI }
+				message := map[string]interface{}{ "regex": i, "user-agent": userAgent, "ip": req.RemoteAddr, "host": req.Host, "uri": req.RequestURI }
 				jsonMessage, _ := json.Marshal(message)
 				log.Printf("%s: %s", b.name, jsonMessage)
 				rw.WriteHeader(http.StatusForbidden)
