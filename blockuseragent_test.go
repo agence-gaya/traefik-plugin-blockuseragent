@@ -43,6 +43,7 @@ func TestServeHTTP(t *testing.T) {
 		desc          string
 		regexps       []string
 		reqUserAgent  string
+		reqUri        string
 		expNextCall   bool
 		expStatusCode int
 	}{
@@ -50,6 +51,7 @@ func TestServeHTTP(t *testing.T) {
 			desc:          "should return forbidden status",
 			regexps:       []string{"\\bagent1\\b"},
 			reqUserAgent:  "agent1",
+			reqUri:        "http://localhost/",
 			expNextCall:   false,
 			expStatusCode: http.StatusForbidden,
 		},
@@ -57,6 +59,7 @@ func TestServeHTTP(t *testing.T) {
 			desc:          "should return forbidden status",
 			regexps:       []string{"\\bagent1\\b", "\\bagent2\\b"},
 			reqUserAgent:  "agent2",
+			reqUri:        "http://localhost/test",
 			expNextCall:   false,
 			expStatusCode: http.StatusForbidden,
 		},
@@ -64,12 +67,14 @@ func TestServeHTTP(t *testing.T) {
 			desc:          "should return ok status",
 			regexps:       []string{"\\bagent1\\b", "\\bagent2\\b"},
 			reqUserAgent:  "agentok",
+			reqUri:        "http://localhost/test",
 			expNextCall:   true,
 			expStatusCode: http.StatusOK,
 		},
 		{
 			desc:          "should return ok status",
 			reqUserAgent:  "agentok",
+			reqUri:        "http://localhost/test",
 			expNextCall:   true,
 			expStatusCode: http.StatusOK,
 		},
@@ -77,6 +82,7 @@ func TestServeHTTP(t *testing.T) {
 			desc:          "should return forbidden status",
 			regexps:       []string{"\\bagent.*"},
 			reqUserAgent:  "agent1",
+			reqUri:        "http://localhost/test",
 			expNextCall:   false,
 			expStatusCode: http.StatusForbidden,
 		},
@@ -84,6 +90,7 @@ func TestServeHTTP(t *testing.T) {
 			desc:          "should return forbidden status",
 			regexps:       []string{"^agent.*"},
 			reqUserAgent:  "agent1",
+			reqUri:        "http://localhost/test",
 			expNextCall:   false,
 			expStatusCode: http.StatusForbidden,
 		},
@@ -91,6 +98,7 @@ func TestServeHTTP(t *testing.T) {
 			desc:          "should return forbidden status",
 			regexps:       []string{"^$"},
 			reqUserAgent:  "",
+			reqUri:        "http://localhost/test",
 			expNextCall:   false,
 			expStatusCode: http.StatusForbidden,
 		},
@@ -98,6 +106,7 @@ func TestServeHTTP(t *testing.T) {
 			desc:          "should return ok status",
 			regexps:       []string{"^$"},
 			reqUserAgent:  "agentok",
+			reqUri:        "http://localhost/test",
 			expNextCall:   true,
 			expStatusCode: http.StatusOK,
 		},
@@ -114,14 +123,14 @@ func TestServeHTTP(t *testing.T) {
 				nextCall = true
 			})
 
-			handler, err := New(context.Background(), next, cfg, "blockpath")
+			handler, err := New(context.Background(), next, cfg, "blockuseragent")
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			recorder := httptest.NewRecorder()
 
-			req := httptest.NewRequest(http.MethodGet, "http://localhost/", nil)
+			req := httptest.NewRequest(http.MethodGet, test.reqUri, nil)
 			req.Header.Add("User-Agent", test.reqUserAgent)
 
 			handler.ServeHTTP(recorder, req)

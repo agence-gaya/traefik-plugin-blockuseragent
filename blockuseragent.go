@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"encoding/json"
 )
 
 // Config holds the plugin configuration.
@@ -19,10 +20,18 @@ func CreateConfig() *Config {
 	return &Config{Regex: make([]string, 0)}
 }
 
-type blockUserAgent struct {
+type BlockUserAgent struct {
 	name    string
 	next    http.Handler
 	regexps []*regexp.Regexp
+}
+
+type BlockUserAgentMessage struct {
+	 rule   int      `json:"intValue"`
+     agent  string   `json:"stringValue"`
+     ip     string   `json:"stringValue"`
+     host   string   `json:"stringValue"`
+     uri    string   `json:"stringValue"`
 }
 
 // New creates and returns a plugin instance.
@@ -38,20 +47,22 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 		regexps[i] = re
 	}
 
-	return &blockUserAgent{
+	return &BlockUserAgent{
 		name:    name,
 		next:    next,
 		regexps: regexps,
 	}, nil
 }
 
-func (b *blockUserAgent) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (b *BlockUserAgent) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if req != nil {
 		userAgent := req.UserAgent()
 
-		for _, re := range b.regexps {
+		for i, re := range b.regexps {
 			if re.MatchString(userAgent) {
-				log.Printf("Block User-Agent: '%s'", userAgent)
+				message := map[string]interface{}{ "regex": i, "user-agent": userAgent, "ip": req.RemoteAddr, "uri": req.RequestURI }
+				jsonMessage, _ := json.Marshal(message)
+				log.Printf("%s: %s", b.name, jsonMessage)
 				rw.WriteHeader(http.StatusForbidden)
 
 				return
