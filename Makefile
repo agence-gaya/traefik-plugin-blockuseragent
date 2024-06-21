@@ -1,6 +1,6 @@
 .PHONY: lint test vendor clean
 
-export GO111MODULE=on
+export GO118MODULE=on
 
 default: lint test
 
