@@ -5,7 +5,6 @@ export GO123MODULE=on
 default: lint test
 
 lint:
-	golangci-lint version
 	golangci-lint run
 
 test:
