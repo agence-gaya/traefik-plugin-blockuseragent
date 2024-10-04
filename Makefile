@@ -1,10 +1,11 @@
 .PHONY: lint test vendor clean
 
-export GO118MODULE=on
+export GO123MODULE=on
 
 default: lint test
 
 lint:
+	golangci-lint version
 	golangci-lint run
 
 test:

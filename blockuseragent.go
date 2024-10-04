@@ -3,11 +3,11 @@ package traefik_plugin_blockuseragent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"regexp"
-	"encoding/json"
 )
 
 // Config holds the plugin configuration.
@@ -20,31 +20,33 @@ func CreateConfig() *Config {
 	return &Config{Regex: make([]string, 0)}
 }
 
+// BlockUserAgent struct.
 type BlockUserAgent struct {
 	name    string
 	next    http.Handler
 	regexps []*regexp.Regexp
 }
 
+// BlockUserAgentMessage struct.
 type BlockUserAgentMessage struct {
-	 rule   int      `json:"intValue"`
-     agent  string   `json:"stringValue"`
-     ip     string   `json:"stringValue"`
-     host   string   `json:"stringValue"`
-     uri    string   `json:"stringValue"`
+	Regex      int    `json:"regex"`
+	UserAgent  string `json:"user-agent"`
+	RemoteAddr string `json:"ip"`
+	Host       string `json:"host"`
+	RequestURI string `json:"uri"`
 }
 
 // New creates and returns a plugin instance.
 func New(_ context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
 	regexps := make([]*regexp.Regexp, len(config.Regex))
 
-	for i, regex := range config.Regex {
+	for index, regex := range config.Regex {
 		re, err := regexp.Compile(regex)
 		if err != nil {
 			return nil, fmt.Errorf("error compiling regex %q: %w", regex, err)
 		}
 
-		regexps[i] = re
+		regexps[index] = re
 	}
 
 	return &BlockUserAgent{
@@ -54,21 +56,31 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 	}, nil
 }
 
-func (b *BlockUserAgent) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (b *BlockUserAgent) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if req != nil {
 		userAgent := req.UserAgent()
 
-		for i, re := range b.regexps {
+		for index, re := range b.regexps {
 			if re.MatchString(userAgent) {
-				message := map[string]interface{}{ "regex": i, "user-agent": userAgent, "ip": req.RemoteAddr, "host": req.Host, "uri": req.RequestURI }
-				jsonMessage, _ := json.Marshal(message)
-				log.Printf("%s: %s", b.name, jsonMessage)
-				rw.WriteHeader(http.StatusForbidden)
+				message := &BlockUserAgentMessage{
+					Regex:      index,
+					UserAgent:  userAgent,
+					RemoteAddr: req.RemoteAddr,
+					Host:       req.Host,
+					RequestURI: req.RequestURI,
+				}
+				jsonMessage, err := json.Marshal(message)
+
+				if err == nil {
+					log.Printf("%s: %s", b.name, jsonMessage)
+				}
+
+				res.WriteHeader(http.StatusForbidden)
 
 				return
 			}
 		}
 	}
 
-	b.next.ServeHTTP(rw, req)
+	b.next.ServeHTTP(res, req)
 }

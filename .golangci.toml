@@ -45,7 +45,8 @@
   max-same-issues = 0
   exclude = [
     "don't use an underscore in package name",
-    "ST1003: should not use underscores in package names"
+    "ST1003: should not use underscores in package names",
+    "got 'user-agent' want 'userAgent'"
   ]
 
  [[issues.exclude-rules]]
