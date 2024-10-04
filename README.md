@@ -7,15 +7,15 @@ response when the requested HTTP User-Agent header matches one the configured [r
 
 ## Configuration
 
-## Static
+## StaticUpdate 
 
 ```toml
 [pilot]
     token="xxx"
 
 [experimental.plugins.blockuseragent]
-    modulename = "github.com/traefik/plugin-blockuseragent"
-    version = "v0.0.1"
+    modulename = "github.com/agence-gaya/traefik-plugin-blockuseragent"
+    version = "vX.Y.Z"
 ```
 
 ## Dynamic
