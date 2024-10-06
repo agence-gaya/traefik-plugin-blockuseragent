@@ -12,19 +12,21 @@ import (
 
 // Config holds the plugin configuration.
 type Config struct {
-	Regex []string `json:"regex,omitempty"`
+	RegexAllow []string `json:"regexAllow,omitempty"`
+	Regex      []string `json:"regex,omitempty"`
 }
 
 // CreateConfig creates and initializes the plugin configuration.
 func CreateConfig() *Config {
-	return &Config{Regex: make([]string, 0)}
+	return &Config{RegexAllow: make([]string, 0), Regex: make([]string, 0)}
 }
 
 // BlockUserAgent struct.
 type BlockUserAgent struct {
-	name    string
-	next    http.Handler
-	regexps []*regexp.Regexp
+	name         string
+	next         http.Handler
+	regexpsAllow []*regexp.Regexp
+	regexpsDeny  []*regexp.Regexp
 }
 
 // BlockUserAgentMessage struct.
@@ -38,7 +40,17 @@ type BlockUserAgentMessage struct {
 
 // New creates and returns a plugin instance.
 func New(_ context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
-	regexps := make([]*regexp.Regexp, len(config.Regex))
+	regexpsAllow := make([]*regexp.Regexp, len(config.RegexAllow))
+	regexpsDeny := make([]*regexp.Regexp, len(config.Regex))
+
+	for index, regex := range config.RegexAllow {
+		re, err := regexp.Compile(regex)
+		if err != nil {
+			return nil, fmt.Errorf("error compiling regexAllow %q: %w", regex, err)
+		}
+
+		regexpsAllow[index] = re
+	}
 
 	for index, regex := range config.Regex {
 		re, err := regexp.Compile(regex)
@@ -46,13 +58,14 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 			return nil, fmt.Errorf("error compiling regex %q: %w", regex, err)
 		}
 
-		regexps[index] = re
+		regexpsDeny[index] = re
 	}
 
 	return &BlockUserAgent{
-		name:    name,
-		next:    next,
-		regexps: regexps,
+		name:         name,
+		next:         next,
+		regexpsAllow: regexpsAllow,
+		regexpsDeny:  regexpsDeny,
 	}, nil
 }
 
@@ -60,7 +73,15 @@ func (b *BlockUserAgent) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if req != nil {
 		userAgent := req.UserAgent()
 
-		for index, re := range b.regexps {
+		for _, re := range b.regexpsAllow {
+			if re.MatchString(userAgent) {
+				b.next.ServeHTTP(res, req)
+
+				return
+			}
+		}
+
+		for index, re := range b.regexpsDeny {
 			if re.MatchString(userAgent) {
 				message := &BlockUserAgentMessage{
 					Regex:      index,

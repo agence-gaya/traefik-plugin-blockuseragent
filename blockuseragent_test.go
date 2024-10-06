@@ -9,26 +9,36 @@ import (
 
 func TestNew(t *testing.T) {
 	tests := []struct {
-		desc    string
-		regexps []string
-		expErr  bool
+		desc       string
+		regexAllow []string
+		regexDeny  []string
+		expErr     bool
 	}{
 		{
-			desc:    "should return no error",
-			regexps: []string{`\bagent1\b`},
-			expErr:  false,
+			desc:       "should return no error",
+			regexAllow: []string{`\bagent1\b`},
+			regexDeny:  []string{`\bagent2\b`},
+			expErr:     false,
 		},
 		{
-			desc:    "should return an error",
-			regexps: []string{"*"},
-			expErr:  true,
+			desc:       "should return an error",
+			regexAllow: []string{"*"},
+			regexDeny:  nil,
+			expErr:     true,
+		},
+		{
+			desc:       "should return an error",
+			regexAllow: nil,
+			regexDeny:  []string{"*"},
+			expErr:     true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
 			cfg := &Config{
-				Regex: test.regexps,
+				RegexAllow: test.regexAllow,
+				Regex:      test.regexDeny,
 			}
 
 			if _, err := New(context.Background(), nil, cfg, "name"); test.expErr && err == nil {
@@ -41,7 +51,8 @@ func TestNew(t *testing.T) {
 func TestServeHTTP(t *testing.T) {
 	tests := []struct {
 		desc          string
-		regexps       []string
+		regexAllow    []string
+		regexDeny     []string
 		reqUserAgent  string
 		reqURI        string
 		expNextCall   bool
@@ -49,7 +60,8 @@ func TestServeHTTP(t *testing.T) {
 	}{
 		{
 			desc:          "should return forbidden status",
-			regexps:       []string{"\\bagent1\\b"},
+			regexAllow:    nil,
+			regexDeny:     []string{"\\bagent1\\b"},
 			reqUserAgent:  "agent1",
 			reqURI:        "http://localhost/",
 			expNextCall:   false,
@@ -57,7 +69,8 @@ func TestServeHTTP(t *testing.T) {
 		},
 		{
 			desc:          "should return forbidden status",
-			regexps:       []string{"\\bagent1\\b", "\\bagent2\\b"},
+			regexAllow:    nil,
+			regexDeny:     []string{"\\bagent1\\b", "\\bagent2\\b"},
 			reqUserAgent:  "agent2",
 			reqURI:        "http://localhost/test",
 			expNextCall:   false,
@@ -65,7 +78,8 @@ func TestServeHTTP(t *testing.T) {
 		},
 		{
 			desc:          "should return ok status",
-			regexps:       []string{"\\bagent1\\b", "\\bagent2\\b"},
+			regexAllow:    nil,
+			regexDeny:     []string{"\\bagent1\\b", "\\bagent2\\b"},
 			reqUserAgent:  "agentok",
 			reqURI:        "http://localhost/test",
 			expNextCall:   true,
@@ -73,7 +87,8 @@ func TestServeHTTP(t *testing.T) {
 		},
 		{
 			desc:          "should return ok status",
-			regexps:       nil,
+			regexAllow:    nil,
+			regexDeny:     nil,
 			reqUserAgent:  "agentok",
 			reqURI:        "http://localhost/test",
 			expNextCall:   true,
@@ -81,7 +96,8 @@ func TestServeHTTP(t *testing.T) {
 		},
 		{
 			desc:          "should return forbidden status",
-			regexps:       []string{"\\bagent.*"},
+			regexAllow:    nil,
+			regexDeny:     []string{"\\bagent.*"},
 			reqUserAgent:  "agent1",
 			reqURI:        "http://localhost/test",
 			expNextCall:   false,
@@ -89,7 +105,8 @@ func TestServeHTTP(t *testing.T) {
 		},
 		{
 			desc:          "should return forbidden status",
-			regexps:       []string{"^agent.*"},
+			regexAllow:    nil,
+			regexDeny:     []string{"^agent.*"},
 			reqUserAgent:  "agent1",
 			reqURI:        "http://localhost/test",
 			expNextCall:   false,
@@ -97,7 +114,8 @@ func TestServeHTTP(t *testing.T) {
 		},
 		{
 			desc:          "should return forbidden status",
-			regexps:       []string{"^$"},
+			regexAllow:    nil,
+			regexDeny:     []string{"^$"},
 			reqUserAgent:  "",
 			reqURI:        "http://localhost/test",
 			expNextCall:   false,
@@ -105,8 +123,63 @@ func TestServeHTTP(t *testing.T) {
 		},
 		{
 			desc:          "should return ok status",
-			regexps:       []string{"^$"},
+			regexAllow:    nil,
+			regexDeny:     []string{"^$"},
 			reqUserAgent:  "agentok",
+			reqURI:        "http://localhost/test",
+			expNextCall:   true,
+			expStatusCode: http.StatusOK,
+		},
+		{
+			desc:          "should return ok status",
+			regexAllow:    []string{"^agent1$"},
+			regexDeny:     []string{".*"},
+			reqUserAgent:  "agent1",
+			reqURI:        "http://localhost/test",
+			expNextCall:   true,
+			expStatusCode: http.StatusOK,
+		},
+		{
+			desc:          "should return ok status",
+			regexAllow:    []string{"^agent1$", "^agent2$"},
+			regexDeny:     []string{".*"},
+			reqUserAgent:  "agent2",
+			reqURI:        "http://localhost/test",
+			expNextCall:   true,
+			expStatusCode: http.StatusOK,
+		},
+		{
+			desc:          "should return forbidden status",
+			regexAllow:    []string{"^agent1$", "^agent2$"},
+			regexDeny:     []string{".*"},
+			reqUserAgent:  "agent3",
+			reqURI:        "http://localhost/test",
+			expNextCall:   false,
+			expStatusCode: http.StatusForbidden,
+		},
+		{
+			desc:          "should return ok status",
+			regexAllow:    []string{"^agent1$", "^agent2$"},
+			regexDeny:     nil,
+			reqUserAgent:  "agent3",
+			reqURI:        "http://localhost/test",
+			expNextCall:   true,
+			expStatusCode: http.StatusOK,
+		},
+		{
+			desc:          "should return forbidden status",
+			regexAllow:    []string{"\\bAllowed\\b"},
+			regexDeny:     []string{"\\bTheAgent\\b"},
+			reqUserAgent:  "This is TheAgent-1.0",
+			reqURI:        "http://localhost/test",
+			expNextCall:   false,
+			expStatusCode: http.StatusForbidden,
+		},
+		{
+			desc:          "should return ok status",
+			regexAllow:    []string{"\\bAllowed\\b"},
+            regexDeny:     []string{"\\bTheAgent\\b"},
+			reqUserAgent:  "This is TheAgent-Allowed-1.0",
 			reqURI:        "http://localhost/test",
 			expNextCall:   true,
 			expStatusCode: http.StatusOK,
@@ -116,7 +189,8 @@ func TestServeHTTP(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
 			cfg := &Config{
-				Regex: test.regexps,
+				RegexAllow: test.regexAllow,
+				Regex:      test.regexDeny,
 			}
 
 			nextCall := false

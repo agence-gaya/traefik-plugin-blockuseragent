@@ -22,7 +22,8 @@ response when the requested HTTP User-Agent header matches one the configured [r
 
 To configure the `Block User-Agent` plugin you should create a [middleware](https://docs.traefik.io/middlewares/overview/) in 
 your dynamic configuration as explained [here](https://docs.traefik.io/middlewares/overview/). The following example creates
-and uses the `blockuseragent` middleware plugin to block all HTTP requests with a User-Agent like `\bTheAgent\b`. 
+and uses the `blockuseragent` middleware plugin to block all HTTP requests with a User-Agent like `\bTheAgent\b`.
+You can use regexAllow to make exception on blocking regex.
 
 ```toml
 [http.routers]
@@ -31,9 +32,10 @@ and uses the `blockuseragent` middleware plugin to block all HTTP requests with 
     middlewares = ["block-foo"]
     service = "my-service"
 
-# Block all paths starting with /foo
+# Block all user agent containing TheAgent except if containing Allowed word
 [http.middlewares]
   [http.middlewares.block-foo.plugin.blockuseragent]
+    regexAllow = ["\bAllowed\b"]    
     regex = ["\bTheAgent\b"]
 
 [http.services]
