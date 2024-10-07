@@ -178,7 +178,7 @@ func TestServeHTTP(t *testing.T) {
 		{
 			desc:          "should return ok status",
 			regexAllow:    []string{"\\bAllowed\\b"},
-            regexDeny:     []string{"\\bTheAgent\\b"},
+			regexDeny:     []string{"\\bTheAgent\\b"},
 			reqUserAgent:  "This is TheAgent-Allowed-1.0",
 			reqURI:        "http://localhost/test",
 			expNextCall:   true,
