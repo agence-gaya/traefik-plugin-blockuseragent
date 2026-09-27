@@ -1,0 +1,23 @@
+---
+services:
+  traefik:
+    image: "traefik:latest"
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--experimental.localplugins.blockuseragent.modulename=github.com/agence-gaya/traefik-plugin-blockuseragent"
+    ports:
+      - "80:80"
+    volumes:
+      - ".:/plugins-local/src/github.com/agence-gaya/traefik-plugin-blockuseragent"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`localhost`)"
+      - "traefik.http.routers.dashboard.entryPoints=web"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=blockuseragent"
+      - "traefik.http.middlewares.blockuseragent.plugin.blockuseragent.regex=(blockthis)"
+      - "traefik.http.middlewares.blockuseragent.plugin.blockuseragent.quiet=true"

@@ -14,11 +14,18 @@ import (
 type Config struct {
 	RegexAllow []string `json:"regexAllow,omitempty"`
 	Regex      []string `json:"regex,omitempty"`
+	Quiet      *bool    `json:"quiet,omitempty"`
 }
 
 // CreateConfig creates and initializes the plugin configuration.
 func CreateConfig() *Config {
-	return &Config{RegexAllow: make([]string, 0), Regex: make([]string, 0)}
+	quiet := false
+
+	return &Config{
+		RegexAllow: make([]string, 0),
+		Regex:      make([]string, 0),
+		Quiet:      &quiet,
+	}
 }
 
 // BlockUserAgent struct.
@@ -27,6 +34,7 @@ type BlockUserAgent struct {
 	next         http.Handler
 	regexpsAllow []*regexp.Regexp
 	regexpsDeny  []*regexp.Regexp
+	quiet        bool
 }
 
 // BlockUserAgentMessage struct.
@@ -61,16 +69,22 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 		regexpsDeny[index] = re
 	}
 
+	quiet := false
+	if config.Quiet != nil {
+		quiet = *config.Quiet
+	}
+
 	return &BlockUserAgent{
 		name:         name,
 		next:         next,
 		regexpsAllow: regexpsAllow,
 		regexpsDeny:  regexpsDeny,
+		quiet:        quiet,
 	}, nil
 }
 
 func (b *BlockUserAgent) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	if req != nil {
+	if req != nil { //nolint:nestif
 		userAgent := req.UserAgent()
 
 		for _, re := range b.regexpsAllow {
@@ -83,17 +97,19 @@ func (b *BlockUserAgent) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 		for index, re := range b.regexpsDeny {
 			if re.MatchString(userAgent) {
-				message := &BlockUserAgentMessage{
-					Regex:      index,
-					UserAgent:  userAgent,
-					RemoteAddr: req.RemoteAddr,
-					Host:       req.Host,
-					RequestURI: req.RequestURI,
-				}
-				jsonMessage, err := json.Marshal(message)
+				if !b.quiet {
+					message := &BlockUserAgentMessage{
+						Regex:      index,
+						UserAgent:  userAgent,
+						RemoteAddr: req.RemoteAddr,
+						Host:       req.Host,
+						RequestURI: req.RequestURI,
+					}
+					jsonMessage, err := json.Marshal(message)
 
-				if err == nil {
-					log.Printf("%s: %s", b.name, jsonMessage)
+					if err == nil {
+						log.Printf("%s: %s", b.name, jsonMessage)
+					}
 				}
 
 				res.WriteHeader(http.StatusForbidden)

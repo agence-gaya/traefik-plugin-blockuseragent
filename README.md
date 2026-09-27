@@ -44,3 +44,25 @@ You can use regexAllow to make exception on blocking regex.
       [[http.services.my-service.loadBalancer.servers]]
         url = "http://127.0.0.1"
 ```
+
+## Omit logs for blocked requests
+
+By default, this plugin logs each blocked request.
+To prevent this, you can set the `quiet` configuration parameter:
+
+```toml
+[http.middlewares]
+  [http.middlewares.block-foo.plugin.blockuseragent]
+    quiet = true
+```
+
+## Manual testing
+
+To manually test the current state of the plugin, you can start traefik using the included [compose file](./compose.yaml).
+*Beware that this mounts the docker daemon socket* and uses it to configure traefik via docker labels.
+The current configuration blocks requests whose useragent includes the string `blockthis`.
+To test this, use e.g. curl:
+
+```bash
+curl --header "User-Agent: blockthis" -i http://localhost/
+```
